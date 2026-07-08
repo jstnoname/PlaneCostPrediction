@@ -27,3 +27,10 @@
 'departure_city', 'departure_country', 'arrival_city','arrival_country', 'airplane_model'`
 
 ### Modeling & Training
+Для оценки моделей использую WAPE и RMSE
+#### Baseline
+Использовал обычную линейную регрессию, заменил не числовые значения с использованием StringIndexer, датасет 
+разделил на train и test по времени, 158 дней (27048 рейсов) пошли в train и 53 дня (9504 рейсов) в test.   
+RMSE = 54.2271  
+WAPE = 20.7532%  
+#### 
