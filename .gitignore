@@ -186,3 +186,6 @@ data/
 
 # MLFlow data
 mlflow.db
+
+# env
+.env*
