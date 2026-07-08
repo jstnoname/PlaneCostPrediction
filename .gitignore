@@ -180,3 +180,9 @@ fabric.properties
 
 # idea folder, uncomment if you don't need it
 .idea
+
+# datasets
+data/
+
+# MLFlow data
+mlflow.db
