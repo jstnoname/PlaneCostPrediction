@@ -5,6 +5,8 @@ from dotenv import dotenv_values
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pyspark.sql import DataFrame, functions as F, Window
+
 
 def search_file(cur_path: Path | str, filename: str) -> Path | None:
     cur_path = Path(cur_path).resolve()
@@ -63,3 +65,30 @@ class Config(BaseModel):
                 toml_data: dict = load(toml_file).get('tool', {}).get('config', {})
 
         return Config(**toml_data)
+
+
+def time_train_test_split(
+        dataframe: DataFrame, test_size: float = 0.2
+) -> tuple[DataFrame, DataFrame, dict[str, int]]:
+    days = dataframe \
+        .select('departure_month', 'departure_day') \
+        .distinct() \
+        .withColumn('day', F.dense_rank().over(Window.orderBy('departure_month', 'departure_day'))) \
+        .cache()
+
+    all_days = days.count()
+    train_days_threshold = int((1 - test_size) * all_days)
+
+    train = days.filter(F.col('day') <= train_days_threshold).drop('day').cache()
+    train = dataframe.join(train, ['departure_month', 'departure_day'], 'inner')
+    test = days.filter(F.col('day') > train_days_threshold).drop('day').cache()
+    test = dataframe.join(test, ['departure_month', 'departure_day'], 'inner')
+
+    meta = {
+        "all_days": all_days,
+        "train_size": train_days_threshold
+    }
+
+    days.unpersist()
+
+    return train, test, meta
