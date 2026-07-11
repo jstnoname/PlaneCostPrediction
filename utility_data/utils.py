@@ -92,3 +92,16 @@ def time_train_test_split(
     days.unpersist()
 
     return train, test, meta
+
+
+def wape_metric(predictions: DataFrame, label_col: str, prediction_col: str):
+    errors_sum = predictions \
+        .select(
+             F.sum(F.abs(F.col(label_col) - F.col(prediction_col))).alias("abs_err_sum"),
+            F.sum(F.col(label_col)).alias("actual_sum")
+        ) \
+        .first()
+
+    if errors_sum is not None and errors_sum.actual_sum != 0:
+        return errors_sum.abs_err_sum / errors_sum.actual_sum
+    return 0
