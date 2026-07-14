@@ -19,10 +19,9 @@ class Inference:
 
 
 if __name__ == '__main__':
-    if __name__ == '__main__':
-        config = Config.load_config()
-        inference = Inference('PlaneCostPredictor', '1', config.dagshub_uri)
-        data = load_dataset(config.hf_dataset)['train'].to_pandas()
-        preds = inference.run(data)
+    config = Config.load_config()
+    inference = Inference('PlaneCostPredictor', '1', config.dagshub_uri)
+    data = load_dataset(config.hf_dataset)['train'].to_pandas()
+    preds = inference.run(data)
 
-        print(preds.head(10))
+    print(preds.head(10))
