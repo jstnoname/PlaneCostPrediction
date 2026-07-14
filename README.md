@@ -27,7 +27,9 @@ ___
 'departure_city', 'departure_country', 'arrival_city','arrival_country', 'airplane_model'`
 ___
 ### Modeling & Training
-Для оценки моделей использую WAPE и RMSE
+Для оценки моделей использую WAPE и RMSE  
+Для отслеживания экспериметнов я использовал [mlflow](https://dagshub.com/jstnoname/PlaneCostPrediction.mlflow), здесь 
+можно посмотреть все результаты моих экспериментов
 #### Baseline
 Использовал обычную линейную регрессию, заменил не числовые значения с использованием StringIndexer, датасет 
 разделил на train и test по времени, 158 дней (27048 рейсов) пошли в train и 53 дня (9504 рейсов) в test.   
