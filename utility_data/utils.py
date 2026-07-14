@@ -4,7 +4,8 @@ from sys import executable
 from tomllib import load
 
 import pyarrow as pa
-from datasets import load_dataset
+from pyarrow.lib import RecordBatch
+from datasets import load_dataset, DownloadConfig
 from dotenv import dotenv_values
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -83,6 +84,7 @@ class Config(BaseModel):
         environ['MLFLOW_TRACKING_PASSWORD'] = data['DAGSHUB_TOKEN']
         environ["PYSPARK_PYTHON"] = executable
         environ["PYSPARK_DRIVER_PYTHON"] = executable
+        environ['HF_TOKEN'] = data['READ_TOKEN']
 
         return Config(**data)
 
@@ -130,16 +132,22 @@ def wape_metric(predictions: df.DataFrame, label_col: str, prediction_col: str):
 def read_parquet(
         spark: SparkSession, url: str, token: str | None = None, batch_size: int = 10000, partition_size: int = 20
 ) -> df.DataFrame:
-    dataset = load_dataset(url, token=token, streaming=True)['train']
-    arrow_schema = pa.schema([(name, feature.pa_type) for name, feature in dataset.features.items()])
-    spark_schema = from_arrow_schema(arrow_schema)
+    try:
+        cfg = DownloadConfig(token=token, num_proc=spark.sparkContext.defaultParallelism)
+        dataset = load_dataset(url, token=token, streaming=True, download_config=cfg)['train']
+        arrow_schema = pa.schema([(name, feature.pa_type) for name, feature in dataset.features.items()])
+        spark_schema = from_arrow_schema(arrow_schema)
 
-    def string_generator():
-        for batch in dataset.to_pandas(batch_size=batch_size, batched=True):
-            rows = batch.itertuples(index=False, name=None)
-            for row in rows:
-                yield row
+        def string_generator():
+            for batch in dataset.to_pandas(batch_size=batch_size, batched=True):
+                for row in batch.itertuples(index=False, name=None):
+                    yield row
 
-    rdd = spark.sparkContext.parallelize(string_generator(), numSlices=partition_size)
-    dataframe = spark.createDataFrame(rdd, schema=spark_schema)
-    return dataframe
+        rdd = spark.sparkContext.parallelize(string_generator(), numSlices=partition_size)
+        dataframe = spark.createDataFrame(rdd, schema=spark_schema)
+        return dataframe
+    except Exception as _:
+        cfg = DownloadConfig(token=token, num_proc=spark.sparkContext.defaultParallelism)
+        dataset = load_dataset(url, token=token, download_config=cfg)['train']
+        dataframe = spark.createDataFrame(dataset.to_pandas())
+        return dataframe
